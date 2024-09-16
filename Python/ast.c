@@ -489,6 +489,9 @@ validate_stmt(stmt_ty stmt)
     case Assert_kind:
         return validate_expr(stmt->v.Assert.test, Load) &&
             (!stmt->v.Assert.msg || validate_expr(stmt->v.Assert.msg, Load));
+    case Passert_kind:
+        return validate_expr(stmt->v.Passert.test, Load) &&
+            (!stmt->v.Passert.msg || validate_expr(stmt->v.Passert.msg, Load));
     case Import_kind:
         return validate_nonempty_seq(stmt->v.Import.names, "names", "Import");
     case ImportFrom_kind:
@@ -3484,6 +3487,35 @@ ast_for_assert_stmt(struct compiling *c, const node *n)
     return NULL;
 }
 
+static stmt_ty
+ast_for_passert_stmt(struct compiling *c, const node *n)
+{
+    /* assert_stmt: 'assert' test [',' test] */
+    REQ(n, assert_stmt);
+    if (NCH(n) == 2) {
+        expr_ty expression = ast_for_expr(c, CHILD(n, 1));
+        if (!expression)
+            return NULL;
+        return Passert(expression, NULL, LINENO(n), n->n_col_offset, c->c_arena);
+    }
+    else if (NCH(n) == 4) {
+        expr_ty expr1, expr2;
+
+        expr1 = ast_for_expr(c, CHILD(n, 1));
+        if (!expr1)
+            return NULL;
+        expr2 = ast_for_expr(c, CHILD(n, 3));
+        if (!expr2)
+            return NULL;
+
+        return Passert(expr1, expr2, LINENO(n), n->n_col_offset, c->c_arena);
+    }
+    PyErr_Format(PyExc_SystemError,
+                 "improper number of parts to 'assert' statement: %d",
+                 NCH(n));
+    return NULL;
+}
+
 static asdl_seq *
 ast_for_suite(struct compiling *c, const node *n)
 {
@@ -4025,6 +4057,8 @@ ast_for_stmt(struct compiling *c, const node *n)
                 return ast_for_nonlocal_stmt(c, n);
             case assert_stmt:
                 return ast_for_assert_stmt(c, n);
+            case passert_stmt:
+                return ast_for_passert_stmt(c, n);
             default:
                 PyErr_Format(PyExc_SystemError,
                              "unhandled small_stmt: TYPE=%d NCH=%d\n",

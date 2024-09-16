@@ -2910,6 +2910,8 @@ compiler_assert(struct compiler *c, stmt_ty s)
     static PyObject *assertion_error = NULL;
     basicblock *end;
     PyObject* msg;
+    if (s->kind == Passert_kind)
+        return 0;
 
     if (c->c_optimize)
         return 1;
@@ -2943,6 +2945,43 @@ compiler_assert(struct compiler *c, stmt_ty s)
         ADDOP_I(c, CALL_FUNCTION, 1);
     }
     ADDOP_I(c, RAISE_VARARGS, 1);
+    compiler_use_next_block(c, end);
+    return 1;
+}
+
+static int
+compiler_passert(struct compiler *c, stmt_ty s)
+{
+    static PyObject *assertion_error = NULL;
+    basicblock *end;
+    PyObject* msg;
+    if (c->c_optimize)
+        return 1;
+    if (assertion_error == NULL) {
+        assertion_error = PyUnicode_InternFromString("AssertionError");
+        if (assertion_error == NULL)
+            return 0;
+    }
+    if (s->v.Passert.test->kind == Tuple_kind &&
+        asdl_seq_LEN(s->v.Passert.test->v.Tuple.elts) > 0) {
+        msg = PyUnicode_FromString("assertion is always true, "
+                                   "perhaps remove parentheses?");
+        if (msg == NULL)
+            return 0;
+        if (PyErr_WarnExplicitObject(PyExc_SyntaxWarning, msg,
+                                     c->c_filename, c->u->u_lineno,
+                                     NULL, NULL) == -1) {
+            Py_DECREF(msg);
+            return 0;
+        }
+        Py_DECREF(msg);
+    }
+    end = compiler_new_block(c);
+    if (end == NULL)
+        return 0;
+    if (!compiler_jump_if(c, s->v.Passert.test, end, 1))
+        return 1;
+
     compiler_use_next_block(c, end);
     return 1;
 }
@@ -3031,6 +3070,8 @@ compiler_visit_stmt(struct compiler *c, stmt_ty s)
         break;
     case Try_kind:
         return compiler_try(c, s);
+    case Passert_kind:
+        return compiler_passert(c, s);
     case Assert_kind:
         return compiler_assert(c, s);
     case Import_kind:

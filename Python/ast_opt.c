@@ -762,6 +762,10 @@ astfold_stmt(stmt_ty node_, PyArena *ctx_, int optimize_)
         CALL(astfold_expr, expr_ty, node_->v.Assert.test);
         CALL_OPT(astfold_expr, expr_ty, node_->v.Assert.msg);
         break;
+    case Passert_kind:
+        CALL(astfold_expr, expr_ty, node_->v.Passert.test);
+        CALL_OPT(astfold_expr, expr_ty, node_->v.Passert.msg);
+        break;
     case Expr_kind:
         CALL(astfold_expr, expr_ty, node_->v.Expr.value);
         break;
