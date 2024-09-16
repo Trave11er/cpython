@@ -1,6 +1,32 @@
 This is Python version 3.7.17
 =============================
 
+This repo adds a new ``passert`` keyword to Python language.
+
+
+Why
+---
+
+We have all been there: you work on code changes for a long time, and after all that effort, some unit tests don't pass. It's frustrating to say the least, but it doesn't have to be that way. The new  keyword comes to the rescue. It works exactly as you'd expect and never throws an error compared to its less well behaved cousin, ``assert``. This saves you the time and effort of having to adapt tests to your changes. As we all know, there is no point in code without tests and there is no point in tests that don't pass. Don't suffer alone - pass your tests with ``passert``!
+
+
+How
+---
+
+After cloning in repo root do::
+
+    ./configure  --prefix=$(pwd)/temp
+    # optionally remove -O3 in Makefile for faster compilation
+    make
+    make install
+
+    ./temp/bin/python3.7 example.py
+    # output:
+    # assert works
+    # passert works
+
+See: `useful link <https://stackoverflow.com/questions/214881/can-you-add-new-statements-to-pythons-syntax>`_ and `inspirational repo <https://github.com/ajalt/fuckitpy>`_. The rest of this file are original contents.
+
 .. image:: https://travis-ci.org/python/cpython.svg?branch=3.7
    :alt: CPython build status on Travis CI
    :target: https://travis-ci.org/python/cpython/branches
