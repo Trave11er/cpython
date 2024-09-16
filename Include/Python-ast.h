@@ -68,9 +68,9 @@ enum _stmt_kind {FunctionDef_kind=1, AsyncFunctionDef_kind=2, ClassDef_kind=3,
                   AugAssign_kind=7, AnnAssign_kind=8, For_kind=9,
                   AsyncFor_kind=10, While_kind=11, If_kind=12, With_kind=13,
                   AsyncWith_kind=14, Raise_kind=15, Try_kind=16,
-                  Assert_kind=17, Import_kind=18, ImportFrom_kind=19,
-                  Global_kind=20, Nonlocal_kind=21, Expr_kind=22, Pass_kind=23,
-                  Break_kind=24, Continue_kind=25};
+                  Assert_kind=17, Passert_kind=18, Import_kind=19,
+                  ImportFrom_kind=20, Global_kind=21, Nonlocal_kind=22,
+                  Expr_kind=23, Pass_kind=24, Break_kind=25, Continue_kind=26};
 struct _stmt {
     enum _stmt_kind kind;
     union {
@@ -176,6 +176,11 @@ struct _stmt {
             expr_ty test;
             expr_ty msg;
         } Assert;
+
+        struct {
+            expr_ty test;
+            expr_ty msg;
+        } Passert;
 
         struct {
             asdl_seq *names;
@@ -501,6 +506,9 @@ stmt_ty _Py_Try(asdl_seq * body, asdl_seq * handlers, asdl_seq * orelse,
 #define Assert(a0, a1, a2, a3, a4) _Py_Assert(a0, a1, a2, a3, a4)
 stmt_ty _Py_Assert(expr_ty test, expr_ty msg, int lineno, int col_offset,
                    PyArena *arena);
+#define Passert(a0, a1, a2, a3, a4) _Py_Passert(a0, a1, a2, a3, a4)
+stmt_ty _Py_Passert(expr_ty test, expr_ty msg, int lineno, int col_offset,
+                    PyArena *arena);
 #define Import(a0, a1, a2, a3) _Py_Import(a0, a1, a2, a3)
 stmt_ty _Py_Import(asdl_seq * names, int lineno, int col_offset, PyArena
                    *arena);

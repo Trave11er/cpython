@@ -157,6 +157,11 @@ static char *Assert_fields[]={
     "test",
     "msg",
 };
+static PyTypeObject *Passert_type;
+static char *Passert_fields[]={
+    "test",
+    "msg",
+};
 static PyTypeObject *Import_type;
 _Py_IDENTIFIER(names);
 static char *Import_fields[]={
@@ -891,6 +896,8 @@ static int init_types(void)
     if (!Try_type) return 0;
     Assert_type = make_type("Assert", stmt_type, Assert_fields, 2);
     if (!Assert_type) return 0;
+    Passert_type = make_type("Passert", stmt_type, Passert_fields, 2);
+    if (!Passert_type) return 0;
     Import_type = make_type("Import", stmt_type, Import_fields, 1);
     if (!Import_type) return 0;
     ImportFrom_type = make_type("ImportFrom", stmt_type, ImportFrom_fields, 3);
@@ -1614,6 +1621,26 @@ Assert(expr_ty test, expr_ty msg, int lineno, int col_offset, PyArena *arena)
     p->kind = Assert_kind;
     p->v.Assert.test = test;
     p->v.Assert.msg = msg;
+    p->lineno = lineno;
+    p->col_offset = col_offset;
+    return p;
+}
+
+stmt_ty
+Passert(expr_ty test, expr_ty msg, int lineno, int col_offset, PyArena *arena)
+{
+    stmt_ty p;
+    if (!test) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field test is required for Passert");
+        return NULL;
+    }
+    p = (stmt_ty)PyArena_Malloc(arena, sizeof(*p));
+    if (!p)
+        return NULL;
+    p->kind = Passert_kind;
+    p->v.Passert.test = test;
+    p->v.Passert.msg = msg;
     p->lineno = lineno;
     p->col_offset = col_offset;
     return p;
@@ -2953,6 +2980,20 @@ ast2obj_stmt(void* _o)
             goto failed;
         Py_DECREF(value);
         value = ast2obj_expr(o->v.Assert.msg);
+        if (!value) goto failed;
+        if (_PyObject_SetAttrId(result, &PyId_msg, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        break;
+    case Passert_kind:
+        result = PyType_GenericNew(Passert_type, NULL, NULL);
+        if (!result) goto failed;
+        value = ast2obj_expr(o->v.Passert.test);
+        if (!value) goto failed;
+        if (_PyObject_SetAttrId(result, &PyId_test, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_expr(o->v.Passert.msg);
         if (!value) goto failed;
         if (_PyObject_SetAttrId(result, &PyId_msg, value) == -1)
             goto failed;
@@ -5485,6 +5526,44 @@ obj2ast_stmt(PyObject* obj, stmt_ty* out, PyArena* arena)
             Py_CLEAR(tmp);
         }
         *out = Assert(test, msg, lineno, col_offset, arena);
+        if (*out == NULL) goto failed;
+        return 0;
+    }
+    isinstance = PyObject_IsInstance(obj, (PyObject*)Passert_type);
+    if (isinstance == -1) {
+        return 1;
+    }
+    if (isinstance) {
+        expr_ty test;
+        expr_ty msg;
+
+        if (_PyObject_LookupAttrId(obj, &PyId_test, &tmp) < 0) {
+            return 1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"test\" missing from Passert");
+            return 1;
+        }
+        else {
+            int res;
+            res = obj2ast_expr(tmp, &test, arena);
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (_PyObject_LookupAttrId(obj, &PyId_msg, &tmp) < 0) {
+            return 1;
+        }
+        if (tmp == NULL || tmp == Py_None) {
+            Py_CLEAR(tmp);
+            msg = NULL;
+        }
+        else {
+            int res;
+            res = obj2ast_expr(tmp, &msg, arena);
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        *out = Passert(test, msg, lineno, col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }
@@ -8199,6 +8278,8 @@ PyInit__ast(void)
         NULL;
     if (PyDict_SetItemString(d, "Try", (PyObject*)Try_type) < 0) return NULL;
     if (PyDict_SetItemString(d, "Assert", (PyObject*)Assert_type) < 0) return
+        NULL;
+    if (PyDict_SetItemString(d, "Passert", (PyObject*)Passert_type) < 0) return
         NULL;
     if (PyDict_SetItemString(d, "Import", (PyObject*)Import_type) < 0) return
         NULL;
